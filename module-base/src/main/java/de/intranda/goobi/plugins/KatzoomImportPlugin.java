@@ -17,6 +17,7 @@ import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import de.sub.goobi.config.ConfigurationHelper;
 import org.apache.commons.configuration.SubnodeConfiguration;
 import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
@@ -89,7 +90,13 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
     @Setter
     private String workflowName;
 
-    private String collection;
+    private static String IMAGES_FOLDER_NAME = "images";
+    private static String OCR_FOLDER_NAME = "ocr";
+    private String processImagesMasterDirectoryNameTemplate;
+    private String processImagesMediaDirectoryNameTemplate;
+    private String processOcrPdfDirectoryNameTemplate;
+    private String processOcrTxtDirectoryNameTemplate;
+
     private String doctype;
 
     private String folderStructure;
@@ -98,14 +105,16 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
     private String tray;
     private String trayPosition;
     private String position;
+    private String noteNumber;
 
     private String importRootFolder;
     // remove this after plugin changes from basex to database store
+    private String eadDatabaseName;
     private boolean generateEadFile;
     private List<String> backsideScans;
 
-    private static Pattern letterIndexFilePattern = Pattern.compile("([A-Z]\\/?J?)\\s+(\\d+)");
-    private static Pattern trayIndexFilePattern = Pattern.compile("(\\d+)\\s(\\w+)\\s(\\d+)\\s(\\d+)");
+    private static final Pattern letterIndexFilePattern = Pattern.compile("([A-Z]/?J?)\\s+(\\d+)");
+    private static final Pattern trayIndexFilePattern = Pattern.compile("(\\d+)\\s(\\w+)\\s(\\d+)\\s(\\d+)");
 
     @Getter
     private IArchiveManagementAdministrationPlugin archivePlugin;
@@ -136,9 +145,8 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
         if (myconfig != null) {
             importRootFolder = myconfig.getString("/importRootFolder", "");
 
+            eadDatabaseName = myconfig.getString("/eadDatabaseName", "eadStore");
             generateEadFile = myconfig.getBoolean("/generateEadFile", true);
-
-            collection = myconfig.getString("/collection", "");
 
             backsideScans = Arrays.asList(myconfig.getStringArray("/backsideScan"));
 
@@ -149,8 +157,15 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
             tray = myconfig.getString("/tray");
             trayPosition = myconfig.getString("/trayPosition");
             position = myconfig.getString("/position");
+            noteNumber = myconfig.getString("/noteNumber");
+
 
         }
+        ConfigurationHelper goobiConfig = ConfigurationHelper.getInstance();
+        this.processImagesMasterDirectoryNameTemplate = goobiConfig.getProcessImagesMasterDirectoryName();
+        this.processImagesMediaDirectoryNameTemplate = goobiConfig.getProcessImagesMainDirectoryName();
+        this.processOcrPdfDirectoryNameTemplate = goobiConfig.getProcessOcrPdfDirectoryName();
+        this.processOcrTxtDirectoryNameTemplate = goobiConfig.getProcessOcrTxtDirectoryName();
     }
 
     /**
@@ -185,6 +200,8 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
         MetadataType trayType = prefs.getMetadataTypeByName(tray);
         MetadataType trayPositionType = prefs.getMetadataTypeByName(trayPosition);
         MetadataType positionType = prefs.getMetadataTypeByName(position);
+        MetadataType noteNumberType = prefs.getMetadataTypeByName(noteNumber);
+
 
         for (Record rec : records) {
             ImportObject io = new ImportObject();
@@ -214,15 +231,12 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
                 dd.setLogicalDocStruct(logical);
                 // identifier
                 Metadata id = new Metadata(idType);
-                id.setValue(processName);
+                id.setValue(kip.getNoteId());
                 logical.addMetadata(id);
                 // collection
-                if (StringUtils.isNotBlank(collection)) {
                     Metadata md = new Metadata(collectionType);
-                    md.setValue(collection);
+                md.setValue(kip.getCollection());
                     logical.addMetadata(md);
-                }
-
                 // folder structure
                 Metadata folderMd = new Metadata(folderStructureType);
                 folderMd.setValue(third + "/" + prev + "/" + last);
@@ -248,6 +262,10 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
                 Metadata pos = new Metadata(positionType);
                 pos.setValue(String.valueOf(kip.getTotalPosition()));
                 logical.addMetadata(pos);
+
+                Metadata nn = new Metadata(noteNumberType);
+                nn.setValue(String.valueOf(kip.getNoteNumber()));
+                logical.addMetadata(nn);
 
                 DocStruct physical = dd.createDocStruct(physicalType);
                 dd.setPhysicalDocStruct(physical);
@@ -415,15 +433,14 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
         // create folder structure
 
         Path processFolder = Paths.get(importFolder, processName);
-        Path mediaFolder = Paths.get(processFolder.toString(), "images", processName + "_media");
-        Path masterFolder = Paths.get(processFolder.toString(), "images", processName + "_master");
-
-        Path textFolder = Paths.get(processFolder.toString(), "ocr", processName + "txt");
-        Path pdfFolder = Paths.get(processFolder.toString(), "ocr", processName + "_pdf");
-        StorageProvider.getInstance().createDirectories(mediaFolder);
-        StorageProvider.getInstance().createDirectories(masterFolder);
-        StorageProvider.getInstance().createDirectories(textFolder);
-        StorageProvider.getInstance().createDirectories(pdfFolder);
+        Path mediaFolder = Paths.get(processFolder.toString(), IMAGES_FOLDER_NAME, this.processImagesMediaDirectoryNameTemplate.replace("{processtitle}", processName));
+        Path masterFolder = Paths.get(processFolder.toString(), IMAGES_FOLDER_NAME, this.processImagesMasterDirectoryNameTemplate.replace("{processtitle}", processName));
+        Path textFolder = Paths.get(processFolder.toString(), OCR_FOLDER_NAME, this.processOcrTxtDirectoryNameTemplate.replace("{processtitle}", processName));
+        Path pdfFolder = Paths.get(processFolder.toString(), OCR_FOLDER_NAME, this.processOcrPdfDirectoryNameTemplate.replace("{processtitle}", processName));
+        Files.createDirectories(mediaFolder);
+        Files.createDirectories(masterFolder);
+        Files.createDirectories(textFolder);
+        Files.createDirectories(pdfFolder);
 
         for (String fileToImport : files) {
             Path fileToCopy = Paths.get(fileToImport);
@@ -564,6 +581,8 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
                 kip.setId(entry.getKey());
                 kip.setTotalPosition(totalPosition);
 
+                kip.setCollection(index.replace(" ", "_"));
+
                 kip.setLetterName(currentLetter);
                 kip.setLetterPosition(positionInLetterIndex);
 
@@ -574,9 +593,19 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
 
                 List<String> files = kip.getFiles();
                 Collections.sort(files);
-                String filename = files.get(0);
-                // get process title
-                String processName = filename.substring(filename.lastIndexOf("/") + 1, filename.indexOf("."));
+
+                String firstFile = files.get(0);
+                String fileName = firstFile.substring(firstFile.lastIndexOf(File.separator) + 1, firstFile.indexOf("."));
+                kip.setNoteId(fileName);
+
+                String collection = index.replace(" ", "_");
+                String processName = collection + "-" + fileName;
+                int fileNameAsNumber = Integer.parseInt(fileName.substring(1));
+                if (backsideScanned) {
+                    kip.setNoteNumber((fileNameAsNumber + 1) / 2);
+                } else {
+                    kip.setNoteNumber(fileNameAsNumber);
+                }
                 kip.setLabel(processName);
                 Record rec = new Record();
                 rec.setId(String.valueOf(entry.getKey()));
@@ -593,15 +622,12 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
     }
 
     private TrayIndex findTrayIndexForPosition(int position, List<TrayIndex> trayIndex) {
-        if (trayIndex.isEmpty()) {
-            return null;
-        }
         TrayIndex current = null;
-        if (position == 1) {
+        if (position == 1 && !trayIndex.isEmpty()) {
             current = trayIndex.get(0);
         } else {
             for (TrayIndex li : trayIndex) {
-                if (position > li.getStartPosition()) {
+                if (position >= li.getStartPosition()) {
                     current = li;
                 }
             }
@@ -615,7 +641,7 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
             current = letterIndex.get(0);
         } else {
             for (LetterIndex li : letterIndex) {
-                if (position > li.getStartPosition()) {
+                if (position >= li.getStartPosition()) {
                     current = li;
                 }
             }
