@@ -234,9 +234,9 @@ public class KatzoomImportPlugin implements IImportPluginVersion3 {
                 id.setValue(kip.getNoteId());
                 logical.addMetadata(id);
                 // collection
-                    Metadata md = new Metadata(collectionType);
+                Metadata md = new Metadata(collectionType);
                 md.setValue(kip.getCollection());
-                    logical.addMetadata(md);
+                logical.addMetadata(md);
                 // folder structure
                 Metadata folderMd = new Metadata(folderStructureType);
                 folderMd.setValue(third + "/" + prev + "/" + last);
