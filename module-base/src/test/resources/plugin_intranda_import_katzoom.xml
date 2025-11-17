@@ -33,5 +33,6 @@
         <tray>Tray</tray>
         <!-- position within tray -->
         <trayPosition>TrayPosition</trayPosition>
+        <noteNumber>NoteNumber</noteNumber>
     </config>
 </config_plugin>

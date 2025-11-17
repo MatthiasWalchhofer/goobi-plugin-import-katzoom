@@ -79,6 +79,11 @@ public class KatzoomImportPluginTest {
         ConfigurationHelper configurationHelper = EasyMock.createMock(ConfigurationHelper.class);
         EasyMock.expect(ConfigurationHelper.getInstance()).andReturn(configurationHelper).anyTimes();
         EasyMock.expect(configurationHelper.getConfigurationFolder()).andReturn(resourcesFolder).anyTimes();
+        EasyMock.expect(configurationHelper.getProcessImagesMasterDirectoryName()).andReturn("{processtitle}_master").anyTimes();
+        EasyMock.expect(configurationHelper.getProcessImagesMainDirectoryName()).andReturn("{processtitle}_media").anyTimes();
+        EasyMock.expect(configurationHelper.getProcessOcrPdfDirectoryName()).andReturn("{processtitle}_pdf").anyTimes();
+        EasyMock.expect(configurationHelper.getProcessOcrTxtDirectoryName()).andReturn("{processtitle}_txt").anyTimes();
+
         EasyMock.expect(configurationHelper.useS3()).andReturn(false).anyTimes();
         EasyMock.replay(configurationHelper);
         PowerMock.replay(ConfigurationHelper.class);
@@ -119,19 +124,19 @@ public class KatzoomImportPluginTest {
         assertEquals(1, kip.getTrayPosition());
         assertEquals(9, kip.getFiles().size());
         // last in 'A'
-        rec = recordList.get(199);
+        rec = recordList.get(198);
         kip = (KatzoomImportObject) rec.getObject();
-        assertEquals("399", rec.getId());
-        assertEquals(200, kip.getTotalPosition());
+        assertEquals("397", rec.getId());
+        assertEquals(199, kip.getTotalPosition());
         assertEquals("A", kip.getLetterName());
-        assertEquals(200, kip.getLetterPosition());
+        assertEquals(199, kip.getLetterPosition());
         assertEquals("Ahammer", kip.getTrayName());
         assertEquals(12, kip.getTrayPosition());
 
         // first in 'B'
-        rec = recordList.get(200);
+        rec = recordList.get(199);
         kip = (KatzoomImportObject) rec.getObject();
-        assertEquals("401", rec.getId());
+        assertEquals("399", rec.getId());
         assertEquals("B", kip.getLetterName());
         assertEquals(1, kip.getLetterPosition());
 
@@ -141,9 +146,9 @@ public class KatzoomImportPluginTest {
         assertEquals("999", rec.getId());
         assertEquals(500, kip.getTotalPosition());
         assertEquals("B", kip.getLetterName());
-        assertEquals(300, kip.getLetterPosition());
+        assertEquals(301, kip.getLetterPosition());
         assertEquals("Amon", kip.getTrayName());
-        assertEquals(112, kip.getTrayPosition());
+        assertEquals(113, kip.getTrayPosition());
     }
 
     @Test
@@ -164,11 +169,11 @@ public class KatzoomImportPluginTest {
         assertEquals(10, imports.size());
 
         ImportObject io = imports.get(0);
-        assertEquals("b0000001", io.getProcessTitle());
-        assertTrue(io.getMetsFilename().endsWith("b0000001.xml"));
+        assertEquals("nka_BKA_Nominal-b0000001", io.getProcessTitle());
+        assertTrue(io.getMetsFilename().endsWith("nka_BKA_Nominal-b0000001.xml"));
 
         // check if files where copied
-        Path masterFolder = Paths.get(io.getMetsFilename().replace(".xml", "/images/b0000001_master"));
+        Path masterFolder = Paths.get(io.getMetsFilename().replace(".xml", "/images/nka_BKA_Nominal-b0000001_master"));
         assertTrue(Files.exists(masterFolder));
         assertTrue(Files.exists(Paths.get(masterFolder.toString(), "b0000001.tif")));
 
@@ -184,7 +189,7 @@ public class KatzoomImportPluginTest {
         assertEquals("b0000002.tif", mm.getDigitalDocument().getPhysicalDocStruct().getAllChildren().get(1).getImageName());
 
         // metadata
-        assertEquals(8, logical.getAllMetadata().size());
+        assertEquals(9, logical.getAllMetadata().size());
 
         // identifier
         Metadata md = logical.getAllMetadata().get(0);
@@ -194,7 +199,7 @@ public class KatzoomImportPluginTest {
         // collection
         md = logical.getAllMetadata().get(1);
         assertEquals("singleDigCollection", md.getType().getName());
-        assertEquals("Zettelkatalog", md.getValue());
+        assertEquals("nka_BKA_Nominal", md.getValue());
 
         // structure
         md = logical.getAllMetadata().get(2);
@@ -220,6 +225,11 @@ public class KatzoomImportPluginTest {
         assertEquals("A", md.getValue());
         md = logical.getAllMetadata().get(7);
         assertEquals("TrayPosition", md.getType().getName());
+        assertEquals("1", md.getValue());
+
+        //NoteNumber
+        md = logical.getAllMetadata().get(8);
+        assertEquals("NoteNumber", md.getType().getName());
         assertEquals("1", md.getValue());
     }
 

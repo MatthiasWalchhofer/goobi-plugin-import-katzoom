@@ -1644,6 +1644,11 @@ sinnvoll. Wie umsetzbar? Alle weiteren Adressen in ein gemeinsames Textfeld schr
     <language name="en">Position (tray)</language>
   </MetadataType>
   
+  <MetadataType>
+    <Name>NoteNumber</Name>
+    <language name="de">Zettelnummer</language>
+    <language name="en">Note number</language>
+  </MetadataType>
 
  <DocStrctType topStruct="true">
     <Name>Note</Name>
@@ -1659,6 +1664,7 @@ sinnvoll. Wie umsetzbar? Alle weiteren Adressen in ein gemeinsames Textfeld schr
     <metadata num="1m">LetterPosition</metadata>
     <metadata num="1o">Tray</metadata>
     <metadata num="1o">TrayPosition</metadata>
+    <metadata num="1o">NoteNumber</metadata>
   </DocStrctType>
 
 <!-- // Katzoom -->
@@ -7254,6 +7260,14 @@ sinnvoll. Wie umsetzbar? Alle weiteren Adressen in ein gemeinsames Textfeld schr
         <InternalName>TrayPosition</InternalName>
         <WriteXPath>./mods:mods/mods:relatedItem[@type='series'][@otherType='tray']/#mods:part[@type='tray']/mods:detail/mods:number</WriteXPath>
     </Metadata>
+
+      <Metadata>
+        <InternalName>NoteNumber</InternalName>
+        <WriteXPath>./mods:mods/#mods:part[@type='note']/mods:detail/mods:number</WriteXPath>
+      </Metadata>
+
+
+
     <!-- // Katzoom end -->
       
       <!-- Docstructs -->
